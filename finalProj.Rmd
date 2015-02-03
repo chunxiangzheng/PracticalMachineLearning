@@ -1,0 +1,108 @@
+---
+title: "Quantify human movement based on data collected on wearable device"
+author: "RoverMAX"
+date: "Sunday, January 25, 2015"
+output: html_document
+---
+Summary
+=======
+Wearbla devices became popular recently.  They provide unique opportunities for measuring large scale of human movement data.  In this study, we used Human Activity Recognition data provided at "http://groupware.les.inf.puc-rio.br/har".  It is a collection of human body movement data measured on a group of volunteers.  The volunteers were ask to perform certain movement in both correct and incorrect ways.  We expect to use this dataset to establish a model to quantify the quanlity of a movement.
+
+Data import
+=======
+The data files were distributed in ".csv" format.  The training data were stored in a data frame called "train".  The testing data were stored in a data frame called "test".
+
+```{r}
+#Missing data were labeled as "NA", strings were not converted into factors
+train <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", na.strings=c("NA", ""), stringsAsFactors=FALSE)
+test <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", na.strings=c("NA", ""), stringsAsFactors=FALSE)
+```
+
+Data cleaning
+=============
+Remove the variables which have too many NAs.  Make the last variable "classe", which is the final results of our prediction, into factor.  
+
+```{r}
+#many variables has a lot of empty values, they will be removed
+#nas is the column indexes we are going to keep
+nas <- sapply(train, function(x){sum(is.na(x))}) == 0
+#train_clean keeps all the features we want to keep
+train_clean <- train[, nas]
+#remove the first column, it is the index.  It will not be useful in model building
+train_clean <- train_clean[, 2: dim(train_clean)[2]]
+#change the last feature into a factor
+train_clean$classe <- as.factor(train_clean$classe)
+train_clean <- train_clean[, c(-2,-3,-4,-5,-6)]
+```
+
+Data summary
+==============
+Here I present some preliminary analysis on the data.  First, we can see most of the features are numeric data.  Only exceptions are "username" and "cvtdtimestamp".  Username is a personal identifier for every volunteer who participate in the data collection process.  The time stamp is the time stamp for when the data was collected.  Second, we can see the final classifier "classe" is a 5-value factor.  Therefore, we are going to have a classification problem.  We will need algorithms which can deal with supervised classification and can divide the data into more than 2 groups.
+
+```{r}
+#this command shows the class for each column of the data
+sapply(train_clean, class)
+#This command shows the summary of the data
+summary(train_clean)
+```
+
+Model generation
+================
+
+As I have described in the previous section, we are going to use classification algorithms to solve the problem.  I chose "decision tree" and "random forest" for this exercise.  I will compare the two respective models, and choose the better one for final test.
+
+First of all, I divided the training data into two parts, one is training, the other is testing
+
+```{r}
+library(caret)
+#partition the data into 60% and 40% two parts
+inTrain <- createDataPartition(y=train_clean$classe, p=0.6, list=FALSE)
+myTraining <- train_clean[inTrain, ]
+myTesting <- train_clean[-inTrain, ]
+```
+
+Build decision tree model
+-------------------------
+```{r}
+treeMdl <- rpart(classe~., data=myTraining, method="class")
+```
+
+Plot decision tree model
+-------------------------
+```{r}
+library(rpart.plot)
+library(rattle)
+png(filename="figure1.png", width=1200, height=1200, res=240)
+fancyRpartPlot(treeMdl, cex=0.3)
+dev.off()
+```
+Testing decision tree model
+---------------------------
+The accuracy is not very impressive
+```{r}
+predictions1 <- predict(treeMdl, myTesting, type="class")
+confusionMatrix(predictions1, myTesting$classe)
+```
+Build random forest model
+-------------------------
+```{r}
+myTraining <- myTraining[, -1]
+rfMdl <- randomForest(classe~., data=myTraining, method="class")
+```
+
+Testing random forest model accuracy
+-------------------------------------
+The random forest model achieve 99% accuracy.
+```{r}
+myTesting <- myTesting[,-1]
+predictions2 <- predict(rfMdl, myTesting, type="class")
+confusionMatrix(predictions2,myTesting$classe)
+```
+
+Plot the random forest error plot
+--------------------------------
+```{r}
+plot(rfMdl)
+```
+
+
