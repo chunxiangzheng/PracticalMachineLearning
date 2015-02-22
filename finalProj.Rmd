@@ -1,7 +1,7 @@
 ---
 title: "Quantify human movement based on data collected on wearable device"
 author: "RoverMAX"
-date: "Sunday, January 25, 2015"
+date: "Sunday, Febrary 21, 2015"
 output: html_document
 ---
 Summary
@@ -10,12 +10,14 @@ Wearbla devices became popular recently.  They provide unique opportunities for 
 
 Data import
 =======
-The data files were distributed in ".csv" format.  The training data were stored in a data frame called "train".  The testing data were stored in a data frame called "test".
+The data files were distributed in ".csv" format.  The training data were stored in a data frame called "train".  The testing data were stored in a data frame called "test". Download training and testing datasets from the following links.
+Training: "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+Testing: "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 
 ```{r}
 #Missing data were labeled as "NA", strings were not converted into factors
-train <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", na.strings=c("NA", ""), stringsAsFactors=FALSE)
-test <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", na.strings=c("NA", ""), stringsAsFactors=FALSE)
+train <- read.csv("pml-training.csv", na.strings=c("NA", ""), stringsAsFactors=FALSE)
+test <- read.csv("pml-testing.csv", na.strings=c("NA", ""), stringsAsFactors=FALSE)
 ```
 
 Data cleaning
@@ -55,6 +57,10 @@ First of all, I divided the training data into two parts, one is training, the o
 
 ```{r}
 library(caret)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(randomForest)
 #partition the data into 60% and 40% two parts
 inTrain <- createDataPartition(y=train_clean$classe, p=0.6, list=FALSE)
 myTraining <- train_clean[inTrain, ]
@@ -70,8 +76,6 @@ treeMdl <- rpart(classe~., data=myTraining, method="class")
 Plot decision tree model
 -------------------------
 ```{r}
-library(rpart.plot)
-library(rattle)
 png(filename="figure1.png", width=1200, height=1200, res=240)
 fancyRpartPlot(treeMdl, cex=0.3)
 dev.off()
